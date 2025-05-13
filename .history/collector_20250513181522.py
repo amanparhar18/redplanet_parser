@@ -128,41 +128,13 @@ def process_image_file(image_path):
     return text
 
 
-def is_low_quality_text(text: str, min_length=300, min_alpha_ratio=0.7, max_symbol_ratio=0.2, max_garbage_lines=0.3):
-    lines = text.strip().splitlines()
-    total_lines = len(lines)
-    
-    if total_lines == 0:
+def is_low_quality_text(text: str, threshold_chars=500, min_alpha_ratio=0.7):
+    text_stripped = text.strip()
+    alpha_ratio = sum(c.isalpha() for c in text_stripped) / (len(text_stripped) + 1e-5)
+    if len(text_stripped) < threshold_chars or alpha_ratio < min_alpha_ratio:
         return True
+    return False
 
-    garbage_lines = 0
-    total_alpha = 0
-    total_chars = 0
-    total_symbols = 0
-    
-    for line in lines:
-        stripped = line.strip()
-        total_chars += len(stripped)
-        total_alpha += sum(c.isalpha() for c in stripped)
-        total_symbols += sum(1 for c in stripped if not c.isalnum() and not c.isspace())
-        
-        # garbage line: too short or lots of non-alphabetic stuff
-        if len(stripped) < 5 or re.fullmatch(r'[^a-zA-Z0-9]+', stripped):
-            garbage_lines += 1
-    
-    if total_chars == 0:
-        return True
-
-    alpha_ratio = total_alpha / total_chars
-    symbol_ratio = total_symbols / total_chars
-    garbage_line_ratio = garbage_lines / total_lines
-
-    return (
-        total_chars < min_length or
-        alpha_ratio < min_alpha_ratio or
-        symbol_ratio > max_symbol_ratio or
-        garbage_line_ratio > max_garbage_lines
-    )
 
 
 # File processing function
