@@ -1,5 +1,4 @@
 import os
-import re
 import pdfplumber
 import pytesseract
 from PIL import Image
@@ -10,8 +9,6 @@ import cv2
 from pdf2image import convert_from_path
 import numpy as np
 from odf.text import Span
-from odf import text, table
-from odf.element import Element
 
 
 # Set the path to tesseract executable
@@ -81,37 +78,20 @@ def extract_text_from_docx(docx_path):
     return text
 
 def extract_text_from_odt(odt_path):
-    def get_text_recursive(element):
-        text_content = ""
+    def get_all_text(element):
+        text = ""
         for node in element.childNodes:
             if node.nodeType == node.TEXT_NODE:
-                text_content += node.data
-            elif isinstance(node, Element):
-                text_content += get_text_recursive(node)
-        return text_content
+                text += node.data
+            else:
+                text += get_all_text(node)
+        return text
 
     doc = load(odt_path)
-    all_text = []
-
-    for elem in doc.getElementsByType(text.P) + doc.getElementsByType(text.H) + doc.getElementsByType(text.Span):
-        para_text = get_text_recursive(elem).strip()
-        if para_text:
-            all_text.append(para_text)
-
-    # Extract text from tables
-    for table_elem in doc.getElementsByType(table.Table):
-        for row in table_elem.getElementsByType(table.TableRow):
-            row_text = []
-            for cell in row.getElementsByType(table.TableCell):
-                cell_paragraphs = cell.getElementsByType(text.P)
-                for p in cell_paragraphs:
-                    cell_text = get_text_recursive(p).strip()
-                    if cell_text:
-                        row_text.append(cell_text)
-            if row_text:
-                all_text.append(" | ".join(row_text))
-
-    return "\n".join(all_text)
+    text = ""
+    for paragraph in doc.getElementsByType(P):
+        text += get_all_text(paragraph).strip() + "\n"
+    return text
 
 
 # Function to extract text from an image using OCR
@@ -127,74 +107,28 @@ def process_image_file(image_path):
     text = pytesseract.image_to_string(preprocessed_img)
     return text
 
-
-def is_low_quality_text(text: str, min_alpha_ratio=0.3, min_length=200):
-    clean_text = text.strip()
-
-    # Check if text is empty or too short
-    if len(clean_text) < min_length:
-        return True
-
-    # Check ratio of alphabetic characters
-    alpha_chars = sum(c.isalpha() for c in clean_text)
-    alpha_ratio = alpha_chars / (len(clean_text) + 1e-5)
-    if alpha_ratio < min_alpha_ratio:
-        return True
-
-    # Check if text is mostly garbage (symbols/digits)
-    garbage_match = re.search(r'[^\w\s]{5,}', clean_text)  # 5+ non-word characters
-    if garbage_match:
-        return True
-
-    # Detect high density of numbers (e.g., 10+ digits in a row)
-    if re.search(r'\d{10,}', clean_text):
-        return True
-
-    # Detect random uppercase gibberish
-    if re.search(r'[A-Z]{8,}', clean_text):
-        return True
-
-    return False
 # File processing function
-
-def is_low_quality_text(text: str, threshold_chars=200):
-    """Determine if the extracted text is likely low quality."""
-    if not text.strip():
-        return True
-    if len(text.strip()) < threshold_chars:
-        return True
-    alpha_ratio = sum(c.isalpha() for c in text) / (len(text) + 1e-5)
-    if alpha_ratio < 0.3:
-        return True
-    return False
-
 def process_file(file_path):
     file_extension = os.path.splitext(file_path)[1].lower()
 
     if file_extension == '.pdf':
         print("Processing PDF file...")
-        text = extract_text_from_pdf(file_path)
+        return extract_text_from_pdf(file_path)
 
     elif file_extension == '.docx':
         print("Processing DOCX file...")
-        text = extract_text_from_docx(file_path)
+        return extract_text_from_docx(file_path)
 
     elif file_extension == '.odt':
         print("Processing ODT file...")
-        text = extract_text_from_odt(file_path)
+        return extract_text_from_odt(file_path)
 
     elif file_extension in ['.jpg', '.jpeg', '.png']:
         print("Processing image file...")
-        text = extract_text_from_image(file_path)
+        return extract_text_from_image(file_path)
 
     else:
         raise ValueError("Unsupported file type!")
-
-    # ✅ Check for poor quality after extraction
-    if is_low_quality_text(text):
-        print("⚠️ Warning: The data quality appears to be too low. Please upload a clearer version or better scan.")
-
-    return text
 
 # Main function
 if __name__ == "__main__":
