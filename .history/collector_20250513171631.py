@@ -6,6 +6,8 @@ from docx import Document
 from odf.opendocument import load
 from odf.text import P
 
+import os
+
 # Add Ghostscript manually to the PATH
 gs_path = r"C:\Program Files\gs\gs10.05.1\bin"
 if gs_path not in os.environ["PATH"]:

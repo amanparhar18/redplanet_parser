@@ -5,8 +5,7 @@ from PIL import Image
 from docx import Document
 from odf.opendocument import load
 from odf.text import P
-
-# Add Ghostscript manually to the PATH
+    # Add Ghostscript manually to the PATH
 gs_path = r"C:\Program Files\gs\gs10.05.1\bin"
 if gs_path not in os.environ["PATH"]:
     os.environ["PATH"] = gs_path + os.pathsep + os.environ["PATH"]
