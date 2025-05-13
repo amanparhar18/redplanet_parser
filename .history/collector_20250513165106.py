@@ -11,17 +11,7 @@ def extract_text_from_pdf(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         text = ""
         for page in pdf.pages:
-            page_text = page.extract_text()
-
-            # If the page has text, use it
-            if page_text:
-                text += page_text
-            else:
-                # If no text is found, use OCR to extract text from images
-                im = page.to_image()
-                ocr_text = pytesseract.image_to_string(im.original)
-                text += ocr_text
-
+            text += page.extract_text()
     return text
 
 # Function to extract text from DOCX

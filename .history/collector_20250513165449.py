@@ -23,7 +23,6 @@ def extract_text_from_pdf(pdf_path):
                 text += ocr_text
 
     return text
-
 # Function to extract text from DOCX
 def extract_text_from_docx(docx_path):
     doc = Document(docx_path)
