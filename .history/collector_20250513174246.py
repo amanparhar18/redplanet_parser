@@ -8,7 +8,7 @@ from odf.text import P
 import cv2
 from pdf2image import convert_from_path
 import numpy as np
-from odf.text import Span
+
 # Set the path to tesseract executable
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
@@ -18,6 +18,7 @@ if gs_path not in os.environ["PATH"]:
     os.environ["PATH"] = gs_path + os.pathsep + os.environ["PATH"]
 
 # Function to preprocess image for better OCR
+
 def preprocess_image_for_ocr(image):
     # Convert to grayscale (OpenCV expects a numpy array)
     gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -75,22 +76,13 @@ def extract_text_from_docx(docx_path):
         text += para.text + "\n"
     return text
 
+# Function to extract text from ODT
 def extract_text_from_odt(odt_path):
-    def get_all_text(element):
-        text = ""
-        for node in element.childNodes:
-            if node.nodeType == node.TEXT_NODE:
-                text += node.data
-            else:
-                text += get_all_text(node)
-        return text
-
     doc = load(odt_path)
     text = ""
     for paragraph in doc.getElementsByType(P):
-        text += get_all_text(paragraph).strip() + "\n"
+        text += paragraph.firstChild.data + "\n"
     return text
-
 
 # Function to extract text from an image using OCR
 def extract_text_from_image(image_path):

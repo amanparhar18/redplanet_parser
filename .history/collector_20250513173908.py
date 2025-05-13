@@ -7,8 +7,7 @@ from odf.opendocument import load
 from odf.text import P
 import cv2
 from pdf2image import convert_from_path
-import numpy as np
-from odf.text import Span
+
 # Set the path to tesseract executable
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
@@ -19,24 +18,19 @@ if gs_path not in os.environ["PATH"]:
 
 # Function to preprocess image for better OCR
 def preprocess_image_for_ocr(image):
-    # Convert to grayscale (OpenCV expects a numpy array)
-    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    # Convert image to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     
-    # Denoise the image (Optional but often helpful)
-    denoised_image = cv2.fastNlMeansDenoising(gray_image, None, 30, 7, 21)
-
-    # Apply adaptive thresholding (better for poor quality images)
-    adaptive_thresh = cv2.adaptiveThreshold(denoised_image, 255, 
-                                            cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                            cv2.THRESH_BINARY, 11, 2)
-
-    # Optionally, apply Gaussian Blur for better edge detection
-    blurred_image = cv2.GaussianBlur(adaptive_thresh, (5, 5), 0)
-
-    # Resize the image (optional)
-    resized_image = cv2.resize(blurred_image, None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
-
-    return resized_image
+    # Apply Gaussian blur to reduce noise
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    
+    # Use thresholding to make the image more binary (black and white)
+    _, thresh = cv2.threshold(blurred, 150, 255, cv2.THRESH_BINARY)
+    
+    # Resize the image to improve OCR recognition
+    resized = cv2.resize(thresh, None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
+    
+    return resized
 
 # Function to extract text from PDF with fallback to OCR
 def extract_text_from_pdf(pdf_path):
@@ -75,22 +69,13 @@ def extract_text_from_docx(docx_path):
         text += para.text + "\n"
     return text
 
+# Function to extract text from ODT
 def extract_text_from_odt(odt_path):
-    def get_all_text(element):
-        text = ""
-        for node in element.childNodes:
-            if node.nodeType == node.TEXT_NODE:
-                text += node.data
-            else:
-                text += get_all_text(node)
-        return text
-
     doc = load(odt_path)
     text = ""
     for paragraph in doc.getElementsByType(P):
-        text += get_all_text(paragraph).strip() + "\n"
+        text += paragraph.firstChild.data + "\n"
     return text
-
 
 # Function to extract text from an image using OCR
 def extract_text_from_image(image_path):
